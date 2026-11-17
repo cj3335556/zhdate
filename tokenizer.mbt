@@ -1,4 +1,21 @@
 ///|
+/// Day-part modifier for time expressions.
+pub enum Period {
+  /// 凌晨 (0-5 o'clock)
+  EarlyMorning
+  /// 早上
+  Morning
+  /// 上午
+  Forenoon
+  /// 中午
+  Noon
+  /// 下午
+  Afternoon
+  /// 晚上
+  Evening
+} derive(Eq)
+
+///|
 /// Which calendar boundary a boundary keyword refers to.
 pub enum BoundaryKind {
   MonthStart
@@ -43,6 +60,18 @@ pub enum TokenKind {
   KwBefore
   /// 周/星期/礼拜 used as a week counter, e.g. "三周后".
   KwWeekWord
+  /// A day-part keyword: 凌晨/早上/上午/中午/下午/晚上.
+  KwPeriod(Period)
+  /// The hour character "点" (or "时").
+  KwHour
+  /// The minute character "分".
+  KwMin
+  /// The second character "秒".
+  KwSec
+  /// The half-past marker "半", e.g. "9点半".
+  KwHalf
+  /// The time separator ":" or "：".
+  KwColon
   /// Anything else; consecutive others merge into one token.
   Other
 } derive(Eq)
@@ -145,6 +174,12 @@ fn keyword_at(
       "周六" => return Some((KwWeekday(6), 2))
       "周日" | "周天" => return Some((KwWeekday(7), 2))
       "星期" | "礼拜" => return Some((KwWeekWord, 2))
+      "凌晨" => return Some((KwPeriod(EarlyMorning), 2))
+      "早上" | "早晨" => return Some((KwPeriod(Morning), 2))
+      "上午" => return Some((KwPeriod(Forenoon), 2))
+      "中午" => return Some((KwPeriod(Noon), 2))
+      "下午" => return Some((KwPeriod(Afternoon), 2))
+      "晚上" => return Some((KwPeriod(Evening), 2))
       _ => ()
     }
   }
@@ -157,6 +192,11 @@ fn keyword_at(
     '后' => Some((KwAfter, 1))
     '前' => Some((KwBefore, 1))
     '周' => Some((KwWeekWord, 1))
+    '点' | '时' => Some((KwHour, 1))
+    '分' => Some((KwMin, 1))
+    '秒' => Some((KwSec, 1))
+    '半' => Some((KwHalf, 1))
+    ':' | '：' => Some((KwColon, 1))
     _ => None
   }
 }
@@ -197,7 +237,10 @@ pub fn tokenize(text : String) -> Array[Token] {
       let k = classify_char(chars[i])
       let mut j = i + 1
       if kind_merges(k) {
-        while j < n && classify_char(chars[j]) == k {
+        // Stop the run at any character that starts a keyword.
+        while j < n &&
+          keyword_at(chars, j, n) is None &&
+          classify_char(chars[j]) == k {
           j = j + 1
         }
       }

@@ -12,7 +12,7 @@ fn chars_join(tokens : Array[Token], start : Int32, end : Int32) -> String {
 
 ///|
 /// Build a `Match` covering tokens `[tok_start, tok_end)` from a
-/// resolved date and kind.
+/// resolved date, optional time and kind.
 fn make_match(
   tokens : Array[Token],
   tok_start : Int32,
@@ -20,6 +20,7 @@ fn make_match(
   y : Int32,
   m : Int32,
   d : Int32,
+  time : TimeOfDay?,
   kind : MatchKind,
 ) -> Match {
   {
@@ -29,6 +30,7 @@ fn make_match(
     year: y,
     month: m,
     day: d,
+    time: time,
     kind: kind,
   }
 }
@@ -51,11 +53,11 @@ fn resolve_raw(
       if !is_valid_date(y, month, day) {
         return Err(InvalidDate(y, month, day))
       }
-      Ok(make_match(tokens, s, e, y, month, day, kind))
+      Ok(make_match(tokens, s, e, y, month, day, None, kind))
     }
     DayOffset(n) => {
       let (y, m, d) = add_days(ctx.year, ctx.month, ctx.day, n)
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
     }
     Weekday(week_off, w, bare) => {
       let base = monday_of_week(ctx.year, ctx.month, ctx.day) + 7 * week_off
@@ -65,10 +67,10 @@ fn resolve_raw(
         // weekday (today counts).
         if days_from_civil(y, m, d) < days_from_civil(ctx.year, ctx.month, ctx.day) {
           let (y2, m2, d2) = add_days(y, m, d, 7)
-          return Ok(make_match(tokens, s, e, y2, m2, d2, Relative))
+          return Ok(make_match(tokens, s, e, y2, m2, d2, None, Relative))
         }
       }
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
     }
     MonthShift(n, day_opt) => {
       let (y, m, kept) = shift_months(ctx.year, ctx.month, ctx.day, n)
@@ -79,11 +81,11 @@ fn resolve_raw(
       if !is_valid_date(y, m, d) {
         return Err(InvalidDate(y, m, d))
       }
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
     }
     YearShift(n) => {
       let (y, m, d) = shift_months(ctx.year, ctx.month, ctx.day, 12 * n)
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
     }
     BoundaryRel(n, b) => {
       let (y, m, d) = match b {
@@ -98,7 +100,7 @@ fn resolve_raw(
         YearStart => (ctx.year + n, 1, 1)
         YearEnd => (ctx.year + n, 12, 31)
       }
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
     }
     BoundaryAbs(num, b) => {
       let (y, m, d) = match b {
@@ -110,7 +112,24 @@ fn resolve_raw(
       if !is_valid_date(y, m, d) {
         return Err(InvalidDate(y, m, d))
       }
-      Ok(make_match(tokens, s, e, y, m, d, Relative))
+      Ok(make_match(tokens, s, e, y, m, d, None, Relative))
+    }
+    Time(h, mi, sec) => {
+      if h < 0 || h > 23 || mi < 0 || mi > 59 || sec < 0 || sec > 59 {
+        return Err(InvalidTime(h, mi, sec))
+      }
+      // A bare time takes its date from the context date.
+      let time : TimeOfDay = { hour: h, minute: mi, second: sec }
+      Ok(make_match(
+        tokens,
+        s,
+        e,
+        ctx.year,
+        ctx.month,
+        ctx.day,
+        Some(time),
+        Time,
+      ))
     }
   }
 }

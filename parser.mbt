@@ -22,8 +22,10 @@ priv enum NumMode {
 /// - `YearShift(n)`: ± n years ("两年后");
 /// - `BoundaryRel(n, b)`: calendar boundary ± n months/years
 ///   ("月底", "下月底", "下年底");
-/// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
-///   "2026年底").
+  /// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
+  ///   "2026年底");
+  /// - `Time(h, m, s)`: a time of day with the hour already adjusted
+  ///   for its day-part ("下午三点" -> 15).
 priv enum RawExpr {
   Day(Int32?, Int32, Int32, MatchKind)
   DayOffset(Int32)
@@ -32,6 +34,7 @@ priv enum RawExpr {
   YearShift(Int32)
   BoundaryRel(Int32, BoundaryKind)
   BoundaryAbs(Int32, BoundaryKind)
+  Time(Int32, Int32, Int32)
 }
 
 ///|
@@ -403,6 +406,172 @@ fn match_boundary_abs(tokens : Array[Token], i : Int32) -> Raw? {
 }
 
 ///|
+/// Optional leading day-part of a time expression.
+/// Returns the period (if any) and the next token index.
+fn eat_period(tokens : Array[Token], i : Int32) -> (Period?, Int32) {
+  if i < tokens.length() {
+    match tokens[i].kind {
+      KwPeriod(p) => (Some(p), i + 1)
+      _ => (None, i)
+    }
+  } else {
+    (None, i)
+  }
+}
+
+///|
+/// Adjust a written hour by its day-part. Hours greater than 12 are
+/// already 24-hour values and are kept as written.
+fn apply_period(p : Period?, h : Int32) -> Int32 {
+  if h > 12 {
+    return h
+  }
+  match p {
+    None => h
+    Some(EarlyMorning) =>
+      if h == 12 {
+        0
+      } else {
+        h
+      }
+    Some(Morning) | Some(Forenoon) =>
+      if h == 12 {
+        12
+      } else {
+        h
+      }
+    Some(Noon) | Some(Afternoon) =>
+      if h == 12 {
+        12
+      } else {
+        h + 12
+      }
+    Some(Evening) =>
+      if h == 12 {
+        0
+      } else {
+        h + 12
+      }
+  }
+}
+
+///|
+/// Match a time-of-day expression at token `i` (longest first).
+/// Forms: "15:30[:45]", "15点30分[45秒]", "15点30", "3点半", "15点",
+/// "下午三点", and bare "中午".
+fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  let (p, j) = eat_period(tokens, i)
+  // NUM KwHour NUM KwMin NUM KwSec — "15点30分45秒"
+  if j + 6 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwHour &&
+    is_num(tokens[j + 2]) &&
+    tokens[j + 3].kind == KwMin &&
+    is_num(tokens[j + 4]) &&
+    tokens[j + 5].kind == KwSec {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
+    guard read_num(tokens[j + 4], ValueNumber) is Some(s) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), m, s),
+      tok_start: i,
+      tok_end: j + 6,
+    })
+  }
+  // NUM KwColon NUM KwColon NUM — "15:30:45"
+  if j + 5 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwColon &&
+    is_num(tokens[j + 2]) &&
+    tokens[j + 3].kind == KwColon &&
+    is_num(tokens[j + 4]) {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
+    guard read_num(tokens[j + 4], ValueNumber) is Some(s) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), m, s),
+      tok_start: i,
+      tok_end: j + 5,
+    })
+  }
+  // NUM KwHour NUM KwMin — "15点30分"
+  if j + 4 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwHour &&
+    is_num(tokens[j + 2]) &&
+    tokens[j + 3].kind == KwMin {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), m, 0),
+      tok_start: i,
+      tok_end: j + 4,
+    })
+  }
+  // NUM KwHour NUM — "15点30"
+  if j + 3 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHour && is_num(
+    tokens[j + 2],
+  ) {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), m, 0),
+      tok_start: i,
+      tok_end: j + 3,
+    })
+  }
+  // NUM KwColon NUM — "15:30"
+  if j + 3 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwColon &&
+    is_num(tokens[j + 2]) {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), m, 0),
+      tok_start: i,
+      tok_end: j + 3,
+    })
+  }
+  // NUM KwHour KwHalf — "3点半"
+  if j + 3 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwHour &&
+    tokens[j + 2].kind == KwHalf {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), 30, 0),
+      tok_start: i,
+      tok_end: j + 3,
+    })
+  }
+  // NUM KwHour — "15点" / "下午三点"
+  if j + 2 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHour {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), 0, 0),
+      tok_start: i,
+      tok_end: j + 2,
+    })
+  }
+  // NUM KwHalf — "三点半" written without 点
+  if j + 2 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHalf {
+    guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
+    return Some({
+      expr: Time(apply_period(p, h), 30, 0),
+      tok_start: i,
+      tok_end: j + 2,
+    })
+  }
+  // Bare "中午" — noon
+  if p is Some(Noon) {
+    return Some({ expr: Time(12, 0, 0), tok_start: i, tok_end: i + 1 })
+  }
+  None
+}
+
+///|
 /// Match the relative date patterns at token `i` (longest first).
 fn match_rel(tokens : Array[Token], i : Int32) -> Raw? {
   if match_month_shift(tokens, i) is Some(r) {
@@ -434,13 +603,17 @@ fn match_rel(tokens : Array[Token], i : Int32) -> Raw? {
 
 ///|
 /// Try to match one date expression starting at token `i`.
-/// Absolute patterns are tried before relative ones; within each group
-/// longer patterns win. Returns the candidate with its token span.
+/// Absolute patterns are tried before relative ones, then times;
+/// within each group longer patterns win. Returns the candidate with
+/// its token span.
 fn match_at(tokens : Array[Token], i : Int32) -> Raw? {
   if match_abs(tokens, i) is Some(r) {
     return Some(r)
   }
-  match_rel(tokens, i)
+  if match_rel(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  match_time(tokens, i)
 }
 
 ///|
