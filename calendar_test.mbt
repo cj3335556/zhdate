@@ -91,6 +91,8 @@ test "shift_months" {
   assert_eq(m, 2)
   assert_eq(d, 28)
   let (y2, m2, d2) = @zhdate.shift_months(2024, 1, 31, 1)
+  assert_eq(y2, 2024)
+  assert_eq(m2, 2)
   assert_eq(d2, 29)
   let (y3, m3, d3) = @zhdate.shift_months(2026, 1, 15, -1)
   assert_eq(y3, 2025)
