@@ -1,6 +1,6 @@
 ///|
 /// How to read the value of a numeral token.
-enum NumMode {
+priv enum NumMode {
   /// Chinese numerals read digit by digit, e.g. "二〇二六" -> 2026 (years).
   YearDigits
   /// Chinese numerals read as multiplicative numbers, e.g. "十七" -> 17
@@ -11,7 +11,7 @@ enum NumMode {
 ///|
 /// A date-shaped candidate found in the token stream, before validation.
 /// `year` is `None` when the expression omits the year ("11月17日").
-struct RawDate {
+priv struct RawDate {
   year : Int32?
   month : Int32
   /// Resolved day; `1` for year-month forms.

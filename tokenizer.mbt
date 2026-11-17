@@ -15,7 +15,7 @@ pub enum TokenKind {
   Separator
   /// Anything else; consecutive others merge into one token.
   Other
-} derive(Eq, Debug)
+} derive(Eq)
 
 ///|
 /// One lexical token with its character span in the input.
