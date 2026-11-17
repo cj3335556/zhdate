@@ -77,9 +77,27 @@ fn main {
   show("15:30", ctx)
   show("9点半", ctx)
   show("25:00", ctx)
+  println("datetimes:")
+  show("下周三下午三点", ctx)
+  show("明天15:30", ctx)
+  println("ranges:")
+  for
+    r in @zhdate.find_ranges(
+      "下周一至周三，11月17日至19日，下午三点至五点", ctx,
+    ) {
+    println(
+      "  [" +
+      fmt_match(r.from) +
+      " .. " +
+      fmt_match(r.to) +
+      "] \"" +
+      r.text +
+      "\"",
+    )
+  }
   println("find_all:")
   let ms = @zhdate.find_all(
-    "明天开会，11月17日截止，2月30日无效", ctx,
+    "明天下午三点开会，11月17日截止，2月30日无效", ctx,
   )
   for m in ms {
     println("  [" + fmt_match(m) + "] \"" + m.text + "\"")
