@@ -2,9 +2,9 @@
 /// Reference date used to resolve expressions that omit parts,
 /// e.g. "11月17日" inherits the year from the context.
 pub(all) struct Context {
-  year : Int
-  month : Int
-  day : Int
+  year : Int32
+  month : Int32
+  day : Int32
 }
 
 ///|
@@ -13,12 +13,12 @@ pub(all) struct Match {
   /// The matched substring.
   text : String
   /// Character offset of the match start in the input.
-  start : Int
+  start : Int32
   /// Character offset of the match end (exclusive) in the input.
-  end : Int
-  year : Int
-  month : Int
-  day : Int
+  end : Int32
+  year : Int32
+  month : Int32
+  day : Int32
   kind : MatchKind
 }
 
@@ -40,5 +40,5 @@ pub enum ParseError {
   NoMatch
   /// A date-shaped expression was found but the date does not exist,
   /// e.g. "2月30日". Fields are year, month, day as written.
-  InvalidDate(Int, Int, Int)
+  InvalidDate(Int32, Int32, Int32)
 }

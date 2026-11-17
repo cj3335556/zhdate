@@ -19,7 +19,7 @@ repository = "https://github.com/cj3335556/zhdate"
 
 license = "Apache-2.0"
 
-keywords = ["date", "chinese", "natural-language", "parser", "zh"]
+keywords = [ "date", "chinese", "natural-language", "parser", "zh" ]
 
 preferred_target = "wasm"
 

@@ -1,6 +1,6 @@
 ///|
 /// Concatenate the source text of tokens in `tokens[start:end]`.
-fn chars_join(tokens : Array[Token], start : Int, end : Int) -> String {
+fn chars_join(tokens : Array[Token], start : Int32, end : Int32) -> String {
   let mut s = ""
   let mut i = start
   while i < end {
@@ -16,7 +16,7 @@ fn chars_join(tokens : Array[Token], start : Int, end : Int) -> String {
 fn resolve_raw(
   raw : RawDate,
   ctx : Context,
-  tokens : Array[Token]
+  tokens : Array[Token],
 ) -> Result[Match, ParseError] {
   let year = match raw.year {
     Some(y) => y
@@ -26,9 +26,15 @@ fn resolve_raw(
     return Err(InvalidDate(year, raw.month, raw.day))
   }
   let text = chars_join(tokens, raw.tok_start, raw.tok_end)
-  Ok({ text: text, start: tokens[raw.tok_start].start,
-    end: tokens[raw.tok_end - 1].end, year: year, month: raw.month,
-    day: raw.day, kind: raw.kind })
+  Ok({
+    text,
+    start: tokens[raw.tok_start].start,
+    end: tokens[raw.tok_end - 1].end,
+    year,
+    month: raw.month,
+    day: raw.day,
+    kind: raw.kind,
+  })
 }
 
 ///|

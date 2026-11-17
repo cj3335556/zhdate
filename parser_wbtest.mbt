@@ -1,9 +1,7 @@
 ///|
 test "match full date with units" {
   let ts = tokenize("2026年11月17日")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, Some(2026))
   assert_eq(raw.month, 11)
   assert_eq(raw.day, 17)
@@ -15,9 +13,7 @@ test "match full date with units" {
 ///|
 test "match full chinese date" {
   let ts = tokenize("二〇二六年十一月十七日")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, Some(2026))
   assert_eq(raw.month, 11)
   assert_eq(raw.day, 17)
@@ -27,9 +23,7 @@ test "match full chinese date" {
 ///|
 test "match full date without day unit" {
   let ts = tokenize("2026年11月17")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, Some(2026))
   assert_eq(raw.day, 17)
   assert_eq(raw.tok_end, 5)
@@ -38,9 +32,7 @@ test "match full date without day unit" {
 ///|
 test "match month day" {
   let ts = tokenize("11月17日")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, None)
   assert_eq(raw.month, 11)
   assert_eq(raw.day, 17)
@@ -50,9 +42,7 @@ test "match month day" {
 ///|
 test "match month day chinese" {
   let ts = tokenize("十月一日")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.month, 10)
   assert_eq(raw.day, 1)
   assert_true(raw.kind is MonthDay)
@@ -61,9 +51,7 @@ test "match month day chinese" {
 ///|
 test "match year month" {
   let ts = tokenize("2026年11月")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, Some(2026))
   assert_eq(raw.month, 11)
   assert_eq(raw.day, 1)
@@ -73,9 +61,7 @@ test "match year month" {
 ///|
 test "match separator forms" {
   let ts = tokenize("2026-11-17")
-  guard match_at(ts, 0) is Some(raw) else {
-    panic()
-  }
+  guard match_at(ts, 0) is Some(raw) else { panic() }
   assert_eq(raw.year, Some(2026))
   assert_eq(raw.month, 11)
   assert_eq(raw.day, 17)
@@ -83,9 +69,7 @@ test "match separator forms" {
   let ts2 = tokenize("2026/11/17")
   assert_true(match_at(ts2, 0) is Some(_))
   let ts3 = tokenize("2026-11")
-  guard match_at(ts3, 0) is Some(raw3) else {
-    panic()
-  }
+  guard match_at(ts3, 0) is Some(raw3) else { panic() }
   assert_true(raw3.kind is YearMonth)
 }
 

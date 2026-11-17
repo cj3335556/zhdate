@@ -23,9 +23,9 @@ pub(all) struct Token {
   kind : TokenKind
   text : String
   /// Character offset of the token start in the input.
-  start : Int
+  start : Int32
   /// Character offset of the token end (exclusive) in the input.
-  end : Int
+  end : Int32
 }
 
 ///|
@@ -46,7 +46,18 @@ fn classify_char(c : Char) -> TokenKind {
     return NumAscii
   }
   match c {
-    '〇' | '零' | '一' | '二' | '三' | '四' | '五' | '六' | '七' | '八' | '九' | '十' => NumCn
+    '〇'
+    | '零'
+    | '一'
+    | '二'
+    | '三'
+    | '四'
+    | '五'
+    | '六'
+    | '七'
+    | '八'
+    | '九'
+    | '十' => NumCn
     '年' => Year
     '月' => Month
     '日' | '号' => Day
@@ -57,7 +68,7 @@ fn classify_char(c : Char) -> TokenKind {
 
 ///|
 /// Convert `chars[start:end]` into a String.
-fn chars_to_string(chars : Array[Char], start : Int, end : Int) -> String {
+fn chars_to_string(chars : Array[Char], start : Int32, end : Int32) -> String {
   let mut s = ""
   let mut i = start
   while i < end {
@@ -85,7 +96,12 @@ pub fn tokenize(text : String) -> Array[Token] {
         j = j + 1
       }
     }
-    tokens.push({ kind: k, text: chars_to_string(chars, i, j), start: i, end: j })
+    tokens.push({
+      kind: k,
+      text: chars_to_string(chars, i, j),
+      start: i,
+      end: j,
+    })
     i = j
   }
   tokens

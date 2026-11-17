@@ -1,13 +1,11 @@
 ///|
 fn ctx_2026() -> @zhdate.Context {
-  { year: 2026, month: 6, day: 1 }
+  { year: 2026, month: 6, day: 1, }
 }
 
 ///|
 test "parse full date" {
-  guard @zhdate.parse("2026年11月17日", ctx_2026()) is Ok(m) else {
-    panic()
-  }
+  guard @zhdate.parse("2026年11月17日", ctx_2026()) is Ok(m) else { panic() }
   assert_eq(m.year, 2026)
   assert_eq(m.month, 11)
   assert_eq(m.day, 17)
@@ -41,9 +39,7 @@ test "parse separator date" {
 
 ///|
 test "parse infers year from context" {
-  guard @zhdate.parse("11月17日", ctx_2026()) is Ok(m) else {
-    panic()
-  }
+  guard @zhdate.parse("11月17日", ctx_2026()) is Ok(m) else { panic() }
   assert_eq(m.year, 2026)
   assert_eq(m.month, 11)
   assert_eq(m.day, 17)
@@ -51,9 +47,7 @@ test "parse infers year from context" {
 
 ///|
 test "parse chinese month day" {
-  guard @zhdate.parse("十月一日", ctx_2026()) is Ok(m) else {
-    panic()
-  }
+  guard @zhdate.parse("十月一日", ctx_2026()) is Ok(m) else { panic() }
   assert_eq(m.year, 2026)
   assert_eq(m.month, 10)
   assert_eq(m.day, 1)
@@ -61,9 +55,7 @@ test "parse chinese month day" {
 
 ///|
 test "parse year month" {
-  guard @zhdate.parse("2026年11月", ctx_2026()) is Ok(m) else {
-    panic()
-  }
+  guard @zhdate.parse("2026年11月", ctx_2026()) is Ok(m) else { panic() }
   assert_eq(m.year, 2026)
   assert_eq(m.month, 11)
   assert_eq(m.day, 1)
@@ -71,9 +63,8 @@ test "parse year month" {
 
 ///|
 test "parse invalid date" {
-  guard @zhdate.parse("2026年2月30日", ctx_2026()) is Err(
-    @zhdate.ParseError::InvalidDate(y, mo, d)
-  ) else {
+  guard @zhdate.parse("2026年2月30日", ctx_2026())
+    is Err(@zhdate.ParseError::InvalidDate(y, mo, d)) else {
     panic()
   }
   assert_eq(y, 2026)
@@ -83,14 +74,18 @@ test "parse invalid date" {
 
 ///|
 test "parse no match" {
-  assert_true(@zhdate.parse("今天天气不错", ctx_2026()) is Err(
-    @zhdate.ParseError::NoMatch
-  ))
+  assert_true(
+    @zhdate.parse("今天天气不错", ctx_2026())
+    is Err(@zhdate.ParseError::NoMatch),
+  )
 }
 
 ///|
 test "find_all extracts multiple dates" {
-  let ms = @zhdate.find_all("11月17日开会，2026-12-01截止，2月30日无效", ctx_2026())
+  let ms = @zhdate.find_all(
+    "11月17日开会，2026-12-01截止，2月30日无效",
+    ctx_2026(),
+  )
   assert_eq(ms.length(), 2)
   assert_eq(ms[0].month, 11)
   assert_eq(ms[0].day, 17)

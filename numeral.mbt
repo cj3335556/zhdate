@@ -1,6 +1,6 @@
 ///|
 /// Value of a Chinese digit character (〇/零/一..九), or `None`.
-fn cn_digit_value(c : Char) -> Int? {
+fn cn_digit_value(c : Char) -> Int32? {
   match c {
     '〇' | '零' => Some(0)
     '一' => Some(1)
@@ -18,7 +18,7 @@ fn cn_digit_value(c : Char) -> Int? {
 
 ///|
 /// Value of an ASCII digit character ('0'..'9'), or `None`.
-fn ascii_digit_value(c : Char) -> Int? {
+fn ascii_digit_value(c : Char) -> Int32? {
   match c {
     '0' => Some(0)
     '1' => Some(1)
@@ -37,15 +37,13 @@ fn ascii_digit_value(c : Char) -> Int? {
 ///|
 /// Fold a string of digit characters into an integer using `digit_of`.
 /// Returns `None` for empty input or any non-digit character.
-fn digits_fold(s : String, digit_of : (Char) -> Int?) -> Int? {
+fn digits_fold(s : String, digit_of : (Char) -> Int32?) -> Int32? {
   if s.length() == 0 {
     return None
   }
   let mut result = 0
   for c in s {
-    guard digit_of(c) is Some(v) else {
-      return None
-    }
+    guard digit_of(c) is Some(v) else { return None }
     result = result * 10 + v
   }
   Some(result)
@@ -54,7 +52,7 @@ fn digits_fold(s : String, digit_of : (Char) -> Int?) -> Int? {
 ///|
 /// Parse a Chinese numeral written digit by digit, e.g. "二〇二六" -> 2026.
 /// This is the form used for years in date expressions.
-pub fn parse_cn_digits(s : String) -> Int? {
+pub fn parse_cn_digits(s : String) -> Int32? {
   digits_fold(s, cn_digit_value)
 }
 
@@ -62,7 +60,7 @@ pub fn parse_cn_digits(s : String) -> Int? {
 /// Parse a Chinese numeral in multiplicative form (0..99),
 /// e.g. "十" -> 10, "十一" -> 11, "二十三" -> 23, "三十一" -> 31.
 /// This is the form used for months and days in date expressions.
-pub fn parse_cn_number(s : String) -> Int? {
+pub fn parse_cn_number(s : String) -> Int32? {
   let chars = []
   for c in s {
     chars.push(c)
@@ -79,18 +77,14 @@ pub fn parse_cn_number(s : String) -> Int? {
   }
   if n == 2 {
     if chars[0] == '十' {
-      guard cn_digit_value(chars[1]) is Some(v) else {
-        return None
-      }
+      guard cn_digit_value(chars[1]) is Some(v) else { return None }
       if v == 0 {
         return None
       }
       return Some(10 + v)
     }
     if chars[1] == '十' {
-      guard cn_digit_value(chars[0]) is Some(v) else {
-        return None
-      }
+      guard cn_digit_value(chars[0]) is Some(v) else { return None }
       if v == 0 {
         return None
       }
@@ -100,12 +94,8 @@ pub fn parse_cn_number(s : String) -> Int? {
   }
   if n == 3 {
     if chars[1] == '十' {
-      guard cn_digit_value(chars[0]) is Some(tens) else {
-        return None
-      }
-      guard cn_digit_value(chars[2]) is Some(ones) else {
-        return None
-      }
+      guard cn_digit_value(chars[0]) is Some(tens) else { return None }
+      guard cn_digit_value(chars[2]) is Some(ones) else { return None }
       if tens == 0 || ones == 0 {
         return None
       }
@@ -118,6 +108,6 @@ pub fn parse_cn_number(s : String) -> Int? {
 ///|
 /// Parse a string of ASCII digits into an integer, e.g. "17" -> 17.
 /// Returns `None` for empty input or any non-digit character.
-pub fn parse_ascii_int(s : String) -> Int? {
+pub fn parse_ascii_int(s : String) -> Int32? {
   digits_fold(s, ascii_digit_value)
 }
