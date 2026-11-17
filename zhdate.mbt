@@ -30,8 +30,8 @@ fn make_match(
     year: y,
     month: m,
     day: d,
-    time: time,
-    kind: kind,
+    time,
+    kind,
   }
 }
 
@@ -70,10 +70,8 @@ fn gap_is_connector(tokens : Array[Token], from : Int32, to : Int32) -> Bool {
   while k < to {
     if tokens[k].kind == KwRangeTo {
       seen = seen + 1
-    } else {
-      if tokens[k].kind != Other || !is_space_text(tokens[k].text) {
-        return false
-      }
+    } else if tokens[k].kind != Other || !is_space_text(tokens[k].text) {
+      return false
     }
     k = k + 1
   }
@@ -109,7 +107,7 @@ fn resolve_date(
       if h < 0 || h > 23 || mi < 0 || mi > 59 || sec < 0 || sec > 59 {
         return Err(InvalidTime(h, mi, sec))
       }
-      Some({ hour: h, minute: mi, second: sec })
+      Some({ hour: h, minute: mi, second: sec, })
     }
   }
   let has_time = time is Some(_)
@@ -122,11 +120,7 @@ fn resolve_date(
       if !is_valid_date(y, month, day) {
         return Err(InvalidDate(y, month, day))
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        kind
-      }
+      let k = if has_time { DateTime } else { kind }
       Ok(make_match(tokens, s, e, y, month, day, time, k))
     }
     DayOnly(day) => {
@@ -136,41 +130,26 @@ fn resolve_date(
       if !is_valid_date(y, m, day) {
         return Err(InvalidDate(y, m, day))
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        MonthDay
-      }
+      let k = if has_time { DateTime } else { MonthDay }
       Ok(make_match(tokens, s, e, y, m, day, time, k))
     }
     DayOffset(n) => {
       let (y, m, d) = add_days(ctx.year, ctx.month, ctx.day, n)
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y, m, d, time, k))
     }
     Weekday(week_off, w, bare) => {
       let base = monday_of_week(ctx.year, ctx.month, ctx.day) + 7 * week_off
       let (y, m, d) = civil_from_days(base + (w - 1))
-      let (y2, m2, d2) = if bare && days_from_civil(y, m, d) < days_from_civil(
-        ctx.year,
-        ctx.month,
-        ctx.day,
-      ) {
+      let (y2, m2, d2) = if bare &&
+        days_from_civil(y, m, d) < days_from_civil(ctx.year, ctx.month, ctx.day) {
         // The modifier-less "周三" resolves to the nearest upcoming
         // weekday (today counts).
         add_days(y, m, d, 7)
       } else {
         (y, m, d)
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y2, m2, d2, time, k))
     }
     MonthShift(n, day_opt) => {
@@ -182,20 +161,12 @@ fn resolve_date(
       if !is_valid_date(y, m, d) {
         return Err(InvalidDate(y, m, d))
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y, m, d, time, k))
     }
     YearShift(n) => {
       let (y, m, d) = shift_months(ctx.year, ctx.month, ctx.day, 12 * n)
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y, m, d, time, k))
     }
     BoundaryRel(n, b) => {
@@ -211,11 +182,7 @@ fn resolve_date(
         YearStart => (ctx.year + n, 1, 1)
         YearEnd => (ctx.year + n, 12, 31)
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y, m, d, time, k))
     }
     BoundaryAbs(num, b) => {
@@ -228,11 +195,7 @@ fn resolve_date(
       if !is_valid_date(y, m, d) {
         return Err(InvalidDate(y, m, d))
       }
-      let k = if has_time {
-        DateTime
-      } else {
-        Relative
-      }
+      let k = if has_time { DateTime } else { Relative }
       Ok(make_match(tokens, s, e, y, m, d, time, k))
     }
     Time(h, mi, sec, _) => {
@@ -240,17 +203,10 @@ fn resolve_date(
       if h < 0 || h > 23 || mi < 0 || mi > 59 || sec < 0 || sec > 59 {
         return Err(InvalidTime(h, mi, sec))
       }
-      let tod : TimeOfDay = { hour: h, minute: mi, second: sec }
-      Ok(make_match(
-        tokens,
-        s,
-        e,
-        ctx.year,
-        ctx.month,
-        ctx.day,
-        Some(tod),
-        Time,
-      ))
+      let tod : TimeOfDay = { hour: h, minute: mi, second: sec, }
+      Ok(
+        make_match(tokens, s, e, ctx.year, ctx.month, ctx.day, Some(tod), Time),
+      )
     }
   }
 }
@@ -276,7 +232,7 @@ fn build_items(raws : Array[Raw], tokens : Array[Token]) -> Array[Item] {
     let r = raws[i]
     match r.expr {
       Time(_, _, _, _) => {
-        items.push({ expr: r.expr, s: r.tok_start, e: r.tok_end, time: None })
+        items.push({ expr: r.expr, s: r.tok_start, e: r.tok_end, time: None, })
         i = i + 1
       }
       _ => {
@@ -294,12 +250,8 @@ fn build_items(raws : Array[Raw], tokens : Array[Token]) -> Array[Item] {
             _ => ()
           }
         }
-        items.push({ expr: r.expr, s: r.tok_start, e: end, time: t })
-        i = if consumed {
-          i + 2
-        } else {
-          i + 1
-        }
+        items.push({ expr: r.expr, s: r.tok_start, e: end, time: t, })
+        i = if consumed { i + 2 } else { i + 1 }
       }
     }
   }
@@ -310,20 +262,16 @@ fn build_items(raws : Array[Raw], tokens : Array[Token]) -> Array[Item] {
 /// Context for the right endpoint of a range: shorthand forms
 /// ("19日", bare "周三") and bare times inherit the left endpoint's
 /// date; everything else keeps the original context.
-fn range_ctx(
-  it : Item,
-  left : Match,
-  ctx : Context,
-) -> Context {
+fn range_ctx(it : Item, left : Match, ctx : Context) -> Context {
   match it.expr {
-    DayOnly(_) => ({ year: left.year, month: left.month, day: left.day })
+    DayOnly(_) => { year: left.year, month: left.month, day: left.day, }
     Weekday(_, _, bare) =>
       if bare {
-        ({ year: left.year, month: left.month, day: left.day })
+        { year: left.year, month: left.month, day: left.day, }
       } else {
         ctx
       }
-    Time(_, _, _, _) => ({ year: left.year, month: left.month, day: left.day })
+    Time(_, _, _, _) => { year: left.year, month: left.month, day: left.day, }
     _ => ctx
   }
 }
@@ -339,7 +287,12 @@ fn adjust_bare_time(it : Item, left : Match) -> Item {
         match left.time {
           Some(lt) =>
             if lt.hour >= 12 {
-              ({ expr: Time(h + 12, mi, s, bare), s: it.s, e: it.e, time: it.time })
+              {
+                expr: Time(h + 12, mi, s, bare),
+                s: it.s,
+                e: it.e,
+                time: it.time,
+              }
             } else {
               it
             }
@@ -442,8 +395,8 @@ pub fn find_ranges(text : String, ctx : Context) -> Array[Range] {
                 text: chars_join(tokens, items[i].s, items[i + 1].e),
                 start: tokens[items[i].s].start,
                 end: tokens[items[i + 1].e - 1].end,
-                from: from,
-                to: to,
+                from,
+                to,
               })
             Err(_) => ()
           }

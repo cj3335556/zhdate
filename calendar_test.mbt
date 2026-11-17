@@ -35,12 +35,17 @@ test "valid dates" {
 test "civil day conversion" {
   assert_eq(@zhdate.days_from_civil(1970, 1, 1), 0)
   assert_eq(@zhdate.days_from_civil(1970, 1, 2), 1)
-  assert_eq(@zhdate.days_from_civil(2026, 11, 17), @zhdate.days_from_civil(2026, 11, 16) + 1)
+  assert_eq(
+    @zhdate.days_from_civil(2026, 11, 17),
+    @zhdate.days_from_civil(2026, 11, 16) + 1,
+  )
   let (y, m, d) = @zhdate.civil_from_days(0)
   assert_eq(y, 1970)
   assert_eq(m, 1)
   assert_eq(d, 1)
-  let (y2, m2, d2) = @zhdate.civil_from_days(@zhdate.days_from_civil(2026, 11, 17))
+  let (y2, m2, d2) = @zhdate.civil_from_days(
+    @zhdate.days_from_civil(2026, 11, 17),
+  )
   assert_eq(y2, 2026)
   assert_eq(m2, 11)
   assert_eq(d2, 17)
@@ -104,7 +109,16 @@ test "shift_months" {
 ///|
 test "monday_of_week" {
   // 2026-11-17 is Tuesday; its week starts on 2026-11-16.
-  assert_eq(@zhdate.monday_of_week(2026, 11, 17), @zhdate.days_from_civil(2026, 11, 16))
-  assert_eq(@zhdate.monday_of_week(2026, 11, 16), @zhdate.days_from_civil(2026, 11, 16))
-  assert_eq(@zhdate.monday_of_week(2026, 11, 22), @zhdate.days_from_civil(2026, 11, 16))
+  assert_eq(
+    @zhdate.monday_of_week(2026, 11, 17),
+    @zhdate.days_from_civil(2026, 11, 16),
+  )
+  assert_eq(
+    @zhdate.monday_of_week(2026, 11, 16),
+    @zhdate.days_from_civil(2026, 11, 16),
+  )
+  assert_eq(
+    @zhdate.monday_of_week(2026, 11, 22),
+    @zhdate.days_from_civil(2026, 11, 16),
+  )
 }

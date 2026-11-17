@@ -99,18 +99,18 @@ test "tokenize boundary keywords" {
   let ts = @zhdate.tokenize("下月底")
   assert_eq(ts.length(), 2)
   assert_true(ts[0].kind is @zhdate.TokenKind::KwMod(1))
-  assert_true(ts[1].kind is @zhdate.TokenKind::KwBoundary(
-    @zhdate.BoundaryKind::MonthEnd,
-  ))
+  assert_true(
+    ts[1].kind is @zhdate.TokenKind::KwBoundary(@zhdate.BoundaryKind::MonthEnd),
+  )
   let ts2 = @zhdate.tokenize("年底")
-  assert_true(ts2[0].kind is @zhdate.TokenKind::KwBoundary(
-    @zhdate.BoundaryKind::YearEnd,
-  ))
+  assert_true(
+    ts2[0].kind is @zhdate.TokenKind::KwBoundary(@zhdate.BoundaryKind::YearEnd),
+  )
   let ts3 = @zhdate.tokenize("下个月底")
   assert_eq(ts3.length(), 3)
-  assert_true(ts3[2].kind is @zhdate.TokenKind::KwBoundary(
-    @zhdate.BoundaryKind::MonthEnd,
-  ))
+  assert_true(
+    ts3[2].kind is @zhdate.TokenKind::KwBoundary(@zhdate.BoundaryKind::MonthEnd),
+  )
 }
 
 ///|
@@ -122,7 +122,7 @@ test "keywords win over single chars" {
   let ts2 = @zhdate.tokenize("2026年底")
   assert_eq(ts2.length(), 2)
   assert_true(ts2[0].kind is @zhdate.TokenKind::NumAscii)
-  assert_true(ts2[1].kind is @zhdate.TokenKind::KwBoundary(
-    @zhdate.BoundaryKind::YearEnd,
-  ))
+  assert_true(
+    ts2[1].kind is @zhdate.TokenKind::KwBoundary(@zhdate.BoundaryKind::YearEnd),
+  )
 }

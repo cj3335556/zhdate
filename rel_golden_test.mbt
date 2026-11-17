@@ -1,6 +1,12 @@
 ///|
 /// Whether `input` resolves to the date (`y`, `mo`, `d`).
-fn is_rel_date(input : String, ctx : @zhdate.Context, y : Int32, mo : Int32, d : Int32) -> Bool {
+fn is_rel_date(
+  input : String,
+  ctx : @zhdate.Context,
+  y : Int32,
+  mo : Int32,
+  d : Int32,
+) -> Bool {
   match @zhdate.parse(input, ctx) {
     Ok(m) => m.year == y && m.month == mo && m.day == d
     Err(_) => false
@@ -10,7 +16,7 @@ fn is_rel_date(input : String, ctx : @zhdate.Context, y : Int32, mo : Int32, d :
 ///|
 test "relative: day keywords" {
   // Context: 2026-11-17 (Tuesday).
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_rel_date("今天", ctx, 2026, 11, 17))
   assert_true(is_rel_date("今日", ctx, 2026, 11, 17))
   assert_true(is_rel_date("明天", ctx, 2026, 11, 18))
@@ -23,7 +29,7 @@ test "relative: day keywords" {
 
 ///|
 test "relative: day and week offsets" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_rel_date("三天后", ctx, 2026, 11, 20))
   assert_true(is_rel_date("3天前", ctx, 2026, 11, 14))
   assert_true(is_rel_date("两天后", ctx, 2026, 11, 19))
@@ -40,7 +46,7 @@ test "relative: day and week offsets" {
 
 ///|
 test "relative: weekdays" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   // This week starts on Monday 2026-11-16.
   assert_true(is_rel_date("下周三", ctx, 2026, 11, 25))
   assert_true(is_rel_date("上周一", ctx, 2026, 11, 9))
@@ -59,7 +65,7 @@ test "relative: weekdays" {
 
 ///|
 test "relative: boundaries" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_rel_date("月底", ctx, 2026, 11, 30))
   assert_true(is_rel_date("下月底", ctx, 2026, 12, 31))
   assert_true(is_rel_date("上月底", ctx, 2026, 10, 31))
@@ -77,7 +83,7 @@ test "relative: boundaries" {
 
 ///|
 test "relative: month shift with day" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_rel_date("下个月17日", ctx, 2026, 12, 17))
   assert_true(is_rel_date("上月15号", ctx, 2026, 10, 15))
   assert_true(is_rel_date("下下个月3日", ctx, 2027, 1, 3))
@@ -87,17 +93,17 @@ test "relative: month shift with day" {
 ///|
 test "relative: day clamping and year boundaries" {
   // Jan 31 + 1 month clamps to Feb 28.
-  let ctx : @zhdate.Context = { year: 2026, month: 1, day: 31 }
+  let ctx : @zhdate.Context = { year: 2026, month: 1, day: 31, }
   assert_true(is_rel_date("一个月后", ctx, 2026, 2, 28))
   // Cross-year month shift.
-  let ctx2 : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx2 : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_rel_date("两个月后", ctx2, 2027, 1, 17))
   assert_true(is_rel_date("13个月后", ctx2, 2027, 12, 17))
 }
 
 ///|
 test "relative: inside longer text" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   guard @zhdate.parse("请在三天后提交材料", ctx) is Ok(m) else {
     panic()
   }
@@ -105,9 +111,7 @@ test "relative: inside longer text" {
   assert_eq(m.year, 2026)
   assert_eq(m.month, 11)
   assert_eq(m.day, 20)
-  guard @zhdate.parse("下周三开会", ctx) is Ok(m2) else {
-    panic()
-  }
+  guard @zhdate.parse("下周三开会", ctx) is Ok(m2) else { panic() }
   assert_eq(m2.text, "下周三")
   assert_eq(m2.day, 25)
   assert_true(m2.kind is @zhdate.MatchKind::Relative)

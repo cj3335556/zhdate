@@ -131,11 +131,7 @@ fn classify_char(c : Char) -> TokenKind {
 ///|
 /// Try to match a known keyword at `chars[i:]`, longest first.
 /// Returns the token kind and the keyword length in characters.
-fn keyword_at(
-  chars : Array[Char],
-  i : Int32,
-  n : Int32
-) -> (TokenKind, Int32)? {
+fn keyword_at(chars : Array[Char], i : Int32, n : Int32) -> (TokenKind, Int32)? {
   if i + 3 <= n {
     match chars_to_string(chars, i, i + 3) {
       "大后天" => return Some((KwRelDay(3), 3))
@@ -242,8 +238,8 @@ pub fn tokenize(text : String) -> Array[Token] {
       if kind_merges(k) {
         // Stop the run at any character that starts a keyword.
         while j < n &&
-          keyword_at(chars, j, n) is None &&
-          classify_char(chars[j]) == k {
+              keyword_at(chars, j, n) is None &&
+              classify_char(chars[j]) == k {
           j = j + 1
         }
       }

@@ -20,9 +20,13 @@ fn fmt_match(m : @zhdate.Match) -> String {
   match m.time {
     None => fmt_date(m.year, m.month, m.day)
     Some(t) =>
-      fmt_date(m.year, m.month, m.day) + " " + pad2(t.hour) + ":" + pad2(t.minute) +
-        ":" +
-        pad2(t.second)
+      fmt_date(m.year, m.month, m.day) +
+      " " +
+      pad2(t.hour) +
+      ":" +
+      pad2(t.minute) +
+      ":" +
+      pad2(t.second)
   }
 }
 
@@ -35,8 +39,15 @@ fn show(text : String, ctx : @zhdate.Context) -> Unit {
       println("  [invalid " + fmt_date(y, mo, d) + "] \"" + text + "\"")
     Err(@zhdate.ParseError::InvalidTime(h, mi, s)) =>
       println(
-        "  [invalid " + h.to_string() + ":" + pad2(mi) + ":" + pad2(s) + "] \"" +
-          text + "\"",
+        "  [invalid " +
+        h.to_string() +
+        ":" +
+        pad2(mi) +
+        ":" +
+        pad2(s) +
+        "] \"" +
+        text +
+        "\"",
       )
     Err(@zhdate.ParseError::NoMatch) => println("  [no date] \"" + text + "\"")
   }
@@ -67,7 +78,9 @@ fn main {
   show("9点半", ctx)
   show("25:00", ctx)
   println("find_all:")
-  let ms = @zhdate.find_all("明天开会，11月17日截止，2月30日无效", ctx)
+  let ms = @zhdate.find_all(
+    "明天开会，11月17日截止，2月30日无效", ctx,
+  )
   for m in ms {
     println("  [" + fmt_match(m) + "] \"" + m.text + "\"")
   }

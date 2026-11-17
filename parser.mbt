@@ -22,13 +22,13 @@ priv enum NumMode {
 /// - `YearShift(n)`: ± n years ("两年后");
 /// - `BoundaryRel(n, b)`: calendar boundary ± n months/years
 ///   ("月底", "下月底", "下年底");
-  /// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
-  ///   "2026年底");
-  /// - `Time(h, m, s, bare)`: a time of day with the hour already
-  ///   adjusted for its day-part ("下午三点" -> 15); `bare` marks a
-  ///   time written without a day-part ("5点" in "下午三点至五点");
-  /// - `DayOnly(day)`: a shorthand day of month ("17日至19日"的"19日"),
-  ///   taking month and year from the context.
+/// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
+///   "2026年底");
+/// - `Time(h, m, s, bare)`: a time of day with the hour already
+///   adjusted for its day-part ("下午三点" -> 15); `bare` marks a
+///   time written without a day-part ("5点" in "下午三点至五点");
+/// - `DayOnly(day)`: a shorthand day of month ("17日至19日"的"19日"),
+///   taking month and year from the context.
 priv enum RawExpr {
   Day(Int32?, Int32, Int32, MatchKind)
   DayOffset(Int32)
@@ -213,7 +213,7 @@ fn scan_mods(tokens : Array[Token], i : Int32) -> (Int32, Int32, Int32) {
 /// "明天" / "后天" / "大前天" ...
 fn match_rel_day(tokens : Array[Token], i : Int32) -> Raw? {
   match tokens[i].kind {
-    KwRelDay(k) => Some({ expr: DayOffset(k), tok_start: i, tok_end: i + 1 })
+    KwRelDay(k) => Some({ expr: DayOffset(k), tok_start: i, tok_end: i + 1, })
     _ => None
   }
 }
@@ -225,10 +225,8 @@ fn match_day_offset(tokens : Array[Token], i : Int32) -> Raw? {
   if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == KwTian {
     guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
     match tokens[i + 2].kind {
-      KwAfter =>
-        Some({ expr: DayOffset(v), tok_start: i, tok_end: i + 3 })
-      KwBefore =>
-        Some({ expr: DayOffset(-v), tok_start: i, tok_end: i + 3 })
+      KwAfter => Some({ expr: DayOffset(v), tok_start: i, tok_end: i + 3, })
+      KwBefore => Some({ expr: DayOffset(-v), tok_start: i, tok_end: i + 3, })
       _ => None
     }
   } else {
@@ -243,10 +241,9 @@ fn match_week_offset(tokens : Array[Token], i : Int32) -> Raw? {
   if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == KwWeekWord {
     guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
     match tokens[i + 2].kind {
-      KwAfter =>
-        Some({ expr: DayOffset(7 * v), tok_start: i, tok_end: i + 3 })
+      KwAfter => Some({ expr: DayOffset(7 * v), tok_start: i, tok_end: i + 3, })
       KwBefore =>
-        Some({ expr: DayOffset(-7 * v), tok_start: i, tok_end: i + 3 })
+        Some({ expr: DayOffset(-7 * v), tok_start: i, tok_end: i + 3, })
       _ => None
     }
   } else {
@@ -265,18 +262,18 @@ fn match_month_offset(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
     match tokens[i + 3].kind {
       KwAfter =>
-        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 4 })
+        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 4, })
       KwBefore =>
-        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 4 })
+        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 4, })
       _ => None
     }
   } else if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Month {
     guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
     match tokens[i + 2].kind {
       KwAfter =>
-        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 3 })
+        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 3, })
       KwBefore =>
-        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 3 })
+        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 3, })
       _ => None
     }
   } else {
@@ -298,10 +295,8 @@ fn match_year_offset(tokens : Array[Token], i : Int32) -> Raw? {
       return None
     }
     match tokens[i + 3].kind {
-      KwAfter =>
-        Some({ expr: YearShift(v), tok_start: i, tok_end: i + 4 })
-      KwBefore =>
-        Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 4 })
+      KwAfter => Some({ expr: YearShift(v), tok_start: i, tok_end: i + 4, })
+      KwBefore => Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 4, })
       _ => None
     }
   } else if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Year {
@@ -310,10 +305,8 @@ fn match_year_offset(tokens : Array[Token], i : Int32) -> Raw? {
       return None
     }
     match tokens[i + 2].kind {
-      KwAfter =>
-        Some({ expr: YearShift(v), tok_start: i, tok_end: i + 3 })
-      KwBefore =>
-        Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 3 })
+      KwAfter => Some({ expr: YearShift(v), tok_start: i, tok_end: i + 3, })
+      KwBefore => Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 3, })
       _ => None
     }
   } else {
@@ -349,11 +342,7 @@ fn match_boundary_rel(tokens : Array[Token], i : Int32) -> Raw? {
   if j < n {
     match tokens[j].kind {
       KwBoundary(b) =>
-        Some({
-          expr: BoundaryRel(sum, b),
-          tok_start: i,
-          tok_end: j + 1,
-        })
+        Some({ expr: BoundaryRel(sum, b), tok_start: i, tok_end: j + 1, })
       _ => None
     }
   } else {
@@ -375,11 +364,7 @@ fn match_month_shift(tokens : Array[Token], i : Int32) -> Raw? {
     if end < n && tokens[end].kind == Day {
       end = end + 1
     }
-    return Some({
-      expr: MonthShift(sum, Some(d)),
-      tok_start: i,
-      tok_end: end,
-    })
+    return Some({ expr: MonthShift(sum, Some(d)), tok_start: i, tok_end: end, })
   }
   None
 }
@@ -396,11 +381,7 @@ fn match_boundary_abs(tokens : Array[Token], i : Int32) -> Raw? {
           YearStart | YearEnd => YearDigits
         }
         guard read_num(tokens[i], mode) is Some(v) else { return None }
-        Some({
-          expr: BoundaryAbs(v, b),
-          tok_start: i,
-          tok_end: i + 2,
-        })
+        Some({ expr: BoundaryAbs(v, b), tok_start: i, tok_end: i + 2, })
       }
       _ => None
     }
@@ -432,30 +413,10 @@ fn apply_period(p : Period?, h : Int32) -> Int32 {
   }
   match p {
     None => h
-    Some(EarlyMorning) =>
-      if h == 12 {
-        0
-      } else {
-        h
-      }
-    Some(Morning) | Some(Forenoon) =>
-      if h == 12 {
-        12
-      } else {
-        h
-      }
-    Some(Noon) | Some(Afternoon) =>
-      if h == 12 {
-        12
-      } else {
-        h + 12
-      }
-    Some(Evening) =>
-      if h == 12 {
-        0
-      } else {
-        h + 12
-      }
+    Some(EarlyMorning) => if h == 12 { 0 } else { h }
+    Some(Morning) | Some(Forenoon) => if h == 12 { 12 } else { h }
+    Some(Noon) | Some(Afternoon) => if h == 12 { 12 } else { h + 12 }
+    Some(Evening) => if h == 12 { 0 } else { h + 12 }
   }
 }
 
@@ -514,9 +475,10 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     })
   }
   // NUM KwHour NUM — "15点30"
-  if j + 3 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHour && is_num(
-    tokens[j + 2],
-  ) {
+  if j + 3 <= n &&
+    is_num(tokens[j]) &&
+    tokens[j + 1].kind == KwHour &&
+    is_num(tokens[j + 2]) {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     return Some({
@@ -570,7 +532,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
   }
   // Bare "中午" — noon
   if p is Some(Noon) {
-    return Some({ expr: Time(12, 0, 0, false), tok_start: i, tok_end: i + 1 })
+    return Some({ expr: Time(12, 0, 0, false), tok_start: i, tok_end: i + 1, })
   }
   None
 }
@@ -581,7 +543,7 @@ fn match_day_only(tokens : Array[Token], i : Int32) -> Raw? {
   let n = tokens.length()
   if i + 2 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Day {
     guard read_num(tokens[i], ValueNumber) is Some(d) else { return None }
-    Some({ expr: DayOnly(d), tok_start: i, tok_end: i + 2 })
+    Some({ expr: DayOnly(d), tok_start: i, tok_end: i + 2, })
   } else {
     None
   }

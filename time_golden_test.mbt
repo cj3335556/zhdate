@@ -11,8 +11,12 @@ fn is_time(
     Ok(m) =>
       match m.time {
         Some(t) =>
-          t.hour == h && t.minute == mi && t.second == s &&
-          m.year == ctx.year && m.month == ctx.month && m.day == ctx.day
+          t.hour == h &&
+          t.minute == mi &&
+          t.second == s &&
+          m.year == ctx.year &&
+          m.month == ctx.month &&
+          m.day == ctx.day
         None => false
       }
     Err(_) => false
@@ -37,7 +41,7 @@ fn is_invalid_time(
 
 ///|
 test "time: colon forms" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_time("15:30", ctx, 15, 30, 0))
   assert_true(is_time("15:30:45", ctx, 15, 30, 45))
   assert_true(is_time("9:05", ctx, 9, 5, 0))
@@ -49,7 +53,7 @@ test "time: colon forms" {
 
 ///|
 test "time: hour-minute-second forms" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_time("15点30分", ctx, 15, 30, 0))
   assert_true(is_time("15点30分45秒", ctx, 15, 30, 45))
   assert_true(is_time("15点30", ctx, 15, 30, 0))
@@ -60,7 +64,7 @@ test "time: hour-minute-second forms" {
 
 ///|
 test "time: half past" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_time("3点半", ctx, 3, 30, 0))
   assert_true(is_time("9点半", ctx, 9, 30, 0))
   assert_true(is_time("三点半", ctx, 3, 30, 0))
@@ -68,7 +72,7 @@ test "time: half past" {
 
 ///|
 test "time: day parts" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_time("下午三点", ctx, 15, 0, 0))
   assert_true(is_time("下午三点半", ctx, 15, 30, 0))
   assert_true(is_time("上午9点20分", ctx, 9, 20, 0))
@@ -85,7 +89,7 @@ test "time: day parts" {
 
 ///|
 test "time: invalid times" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   assert_true(is_invalid_time("25:00", ctx, 25, 0, 0))
   assert_true(is_invalid_time("15点70分", ctx, 15, 70, 0))
   assert_true(is_invalid_time("10:30:99", ctx, 10, 30, 99))
@@ -93,14 +97,12 @@ test "time: invalid times" {
 
 ///|
 test "time: inside longer text" {
-  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17 }
+  let ctx : @zhdate.Context = { year: 2026, month: 11, day: 17, }
   guard @zhdate.parse("会议在下午三点开始", ctx) is Ok(m) else {
     panic()
   }
   assert_eq(m.text, "下午三点")
   assert_true(m.kind is @zhdate.MatchKind::Time)
-  guard m.time is Some(t) else {
-    panic()
-  }
+  guard m.time is Some(t) else { panic() }
   assert_eq(t.hour, 15)
 }

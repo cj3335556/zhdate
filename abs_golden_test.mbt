@@ -113,9 +113,7 @@ test "golden: no match" {
     @zhdate.parse("天气不错", ctx) is Err(@zhdate.ParseError::NoMatch),
   )
   assert_true(@zhdate.parse("", ctx) is Err(@zhdate.ParseError::NoMatch))
-  assert_true(
-    @zhdate.parse("开会", ctx) is Err(@zhdate.ParseError::NoMatch),
-  )
+  assert_true(@zhdate.parse("开会", ctx) is Err(@zhdate.ParseError::NoMatch))
   assert_true(@zhdate.parse("下周", ctx) is Err(@zhdate.ParseError::NoMatch))
 }
 
