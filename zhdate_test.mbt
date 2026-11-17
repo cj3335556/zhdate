@@ -75,7 +75,7 @@ test "parse invalid date" {
 ///|
 test "parse no match" {
   assert_true(
-    @zhdate.parse("今天天气不错", ctx_2026())
+    @zhdate.parse("天气不错", ctx_2026())
     is Err(@zhdate.ParseError::NoMatch),
   )
 }

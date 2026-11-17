@@ -144,6 +144,7 @@ fn keyword_at(
       "周五" => return Some((KwWeekday(5), 2))
       "周六" => return Some((KwWeekday(6), 2))
       "周日" | "周天" => return Some((KwWeekday(7), 2))
+      "星期" | "礼拜" => return Some((KwWeekWord, 2))
       _ => ()
     }
   }

@@ -31,6 +31,9 @@ pub enum MatchKind {
   YearMonth
   /// "11月17日" / "十一月十七日" (year inferred from context)
   MonthDay
+  /// A relative expression resolved against the context date,
+  /// e.g. "明天", "三天后", "下周三", "月底", "下个月17日".
+  Relative
 }
 
 ///|

@@ -110,16 +110,13 @@ test "golden: invalid dates" {
 test "golden: no match" {
   let ctx : @zhdate.Context = { year: 2026, month: 6, day: 1, }
   assert_true(
-    @zhdate.parse("今天天气不错", ctx) is Err(@zhdate.ParseError::NoMatch),
+    @zhdate.parse("天气不错", ctx) is Err(@zhdate.ParseError::NoMatch),
   )
   assert_true(@zhdate.parse("", ctx) is Err(@zhdate.ParseError::NoMatch))
   assert_true(
-    @zhdate.parse("下周三下午三点", ctx)
-    is Err(@zhdate.ParseError::NoMatch),
-  )
-  assert_true(
     @zhdate.parse("三点开会", ctx) is Err(@zhdate.ParseError::NoMatch),
   )
+  assert_true(@zhdate.parse("下周", ctx) is Err(@zhdate.ParseError::NoMatch))
 }
 
 ///|

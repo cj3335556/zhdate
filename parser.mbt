@@ -9,17 +9,36 @@ priv enum NumMode {
 }
 
 ///|
-/// A date-shaped candidate found in the token stream, before validation.
-/// `year` is `None` when the expression omits the year ("11月17日").
-priv struct RawDate {
-  year : Int32?
-  month : Int32
-  /// Resolved day; `1` for year-month forms.
-  day : Int32
-  kind : MatchKind
-  /// First token index of the expression.
+/// A date expression candidate before resolution against the context.
+/// Payloads are positional:
+/// - `Day(y?, month, day, kind)`: concrete parts; year `None` means
+///   "take from context";
+/// - `DayOffset(n)`: ± n days from the context ("三天后", "明天");
+/// - `Weekday(week_off, w, bare)`: weekday `w` (1 = Mon .. 7 = Sun),
+///   `week_off` weeks from the context week (0 = this week), `bare`
+///   marks the modifier-less form "周三" (nearest upcoming weekday);
+/// - `MonthShift(n, day?)`: ± n months, optional fixed day of month
+///   ("下个月17日");
+/// - `YearShift(n)`: ± n years ("两年后");
+/// - `BoundaryRel(n, b)`: calendar boundary ± n months/years
+///   ("月底", "下月底", "下年底");
+/// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
+///   "2026年底").
+priv enum RawExpr {
+  Day(Int32?, Int32, Int32, MatchKind)
+  DayOffset(Int32)
+  Weekday(Int32, Int32, Bool)
+  MonthShift(Int32, Int32?)
+  YearShift(Int32)
+  BoundaryRel(Int32, BoundaryKind)
+  BoundaryAbs(Int32, BoundaryKind)
+}
+
+///|
+/// A candidate expression with its token span.
+priv struct Raw {
+  expr : RawExpr
   tok_start : Int32
-  /// Token index just past the expression.
   tok_end : Int32
 }
 
@@ -50,10 +69,8 @@ fn read_num(t : Token, mode : NumMode) -> Int32? {
 }
 
 ///|
-/// Try to match one date expression starting at token `i`.
-/// Patterns are tried longest-first. Returns the candidate together with
-/// the token index just past it, or `None` when no pattern matches.
-fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
+/// Match the absolute date patterns at token `i` (longest first).
+fn match_abs(tokens : Array[Token], i : Int32) -> Raw? {
   let n = tokens.length()
   // NUM YEAR NUM MONTH NUM DAY — "2026年11月17日" / "二〇二六年十一月十七日"
   if i + 6 <= n &&
@@ -67,10 +84,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i + 2], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[i + 4], ValueNumber) is Some(d) else { return None }
     return Some({
-      year: Some(y),
-      month: m,
-      day: d,
-      kind: FullDate,
+      expr: Day(Some(y), m, d, FullDate),
       tok_start: i,
       tok_end: i + 6,
     })
@@ -86,10 +100,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i + 2], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[i + 4], ValueNumber) is Some(d) else { return None }
     return Some({
-      year: Some(y),
-      month: m,
-      day: d,
-      kind: FullDate,
+      expr: Day(Some(y), m, d, FullDate),
       tok_start: i,
       tok_end: i + 5,
     })
@@ -103,10 +114,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[i + 2], ValueNumber) is Some(d) else { return None }
     return Some({
-      year: None,
-      month: m,
-      day: d,
-      kind: MonthDay,
+      expr: Day(None, m, d, MonthDay),
       tok_start: i,
       tok_end: i + 4,
     })
@@ -120,10 +128,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i], YearDigits) is Some(y) else { return None }
     guard read_num(tokens[i + 2], ValueNumber) is Some(m) else { return None }
     return Some({
-      year: Some(y),
-      month: m,
-      day: 1,
-      kind: YearMonth,
+      expr: Day(Some(y), m, 1, YearMonth),
       tok_start: i,
       tok_end: i + 4,
     })
@@ -136,10 +141,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[i + 2], ValueNumber) is Some(d) else { return None }
     return Some({
-      year: None,
-      month: m,
-      day: d,
-      kind: MonthDay,
+      expr: Day(None, m, d, MonthDay),
       tok_start: i,
       tok_end: i + 3,
     })
@@ -155,10 +157,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i + 2], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[i + 4], ValueNumber) is Some(d) else { return None }
     return Some({
-      year: Some(y),
-      month: m,
-      day: d,
-      kind: FullDate,
+      expr: Day(Some(y), m, d, FullDate),
       tok_start: i,
       tok_end: i + 5,
     })
@@ -171,10 +170,7 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
     guard read_num(tokens[i], YearDigits) is Some(y) else { return None }
     guard read_num(tokens[i + 2], ValueNumber) is Some(m) else { return None }
     return Some({
-      year: Some(y),
-      month: m,
-      day: 1,
-      kind: YearMonth,
+      expr: Day(Some(y), m, 1, YearMonth),
       tok_start: i,
       tok_end: i + 3,
     })
@@ -183,10 +179,275 @@ fn match_at(tokens : Array[Token], i : Int32) -> RawDate? {
 }
 
 ///|
+/// Consume a run of (KwMod KwGe?) pairs starting at `i`.
+/// Returns (sum of modifiers, next token index, modifier count).
+fn scan_mods(tokens : Array[Token], i : Int32) -> (Int32, Int32, Int32) {
+  let n = tokens.length()
+  let mut j = i
+  let mut sum = 0
+  let mut count = 0
+  while j < n {
+    match tokens[j].kind {
+      KwMod(v) => {
+        sum = sum + v
+        count = count + 1
+        j = j + 1
+        if j < n && tokens[j].kind == KwGe {
+          j = j + 1
+        }
+      }
+      _ => break
+    }
+  }
+  (sum, j, count)
+}
+
+///|
+/// "明天" / "后天" / "大前天" ...
+fn match_rel_day(tokens : Array[Token], i : Int32) -> Raw? {
+  match tokens[i].kind {
+    KwRelDay(k) => Some({ expr: DayOffset(k), tok_start: i, tok_end: i + 1 })
+    _ => None
+  }
+}
+
+///|
+/// "三天后" / "3天前" — NUM 天 后|前
+fn match_day_offset(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == KwTian {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    match tokens[i + 2].kind {
+      KwAfter =>
+        Some({ expr: DayOffset(v), tok_start: i, tok_end: i + 3 })
+      KwBefore =>
+        Some({ expr: DayOffset(-v), tok_start: i, tok_end: i + 3 })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "三周后" / "两周前" — NUM 周|星期|礼拜 后|前
+fn match_week_offset(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == KwWeekWord {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    match tokens[i + 2].kind {
+      KwAfter =>
+        Some({ expr: DayOffset(7 * v), tok_start: i, tok_end: i + 3 })
+      KwBefore =>
+        Some({ expr: DayOffset(-7 * v), tok_start: i, tok_end: i + 3 })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "三个月后" / "三月后" — NUM 个? 月 后|前
+fn match_month_offset(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 4 <= n &&
+    is_num(tokens[i]) &&
+    tokens[i + 1].kind == KwGe &&
+    tokens[i + 2].kind == Month {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    match tokens[i + 3].kind {
+      KwAfter =>
+        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 4 })
+      KwBefore =>
+        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 4 })
+      _ => None
+    }
+  } else if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Month {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    match tokens[i + 2].kind {
+      KwAfter =>
+        Some({ expr: MonthShift(v, None), tok_start: i, tok_end: i + 3 })
+      KwBefore =>
+        Some({ expr: MonthShift(-v, None), tok_start: i, tok_end: i + 3 })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "两年后" / "三个年前" — NUM 个? 年 后|前 (numeral ≤ 999 so that
+/// "2026年后" is not misread as "2026 years later").
+fn match_year_offset(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 4 <= n &&
+    is_num(tokens[i]) &&
+    tokens[i + 1].kind == KwGe &&
+    tokens[i + 2].kind == Year {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    if v > 999 {
+      return None
+    }
+    match tokens[i + 3].kind {
+      KwAfter =>
+        Some({ expr: YearShift(v), tok_start: i, tok_end: i + 4 })
+      KwBefore =>
+        Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 4 })
+      _ => None
+    }
+  } else if i + 3 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Year {
+    guard read_num(tokens[i], ValueNumber) is Some(v) else { return None }
+    if v > 999 {
+      return None
+    }
+    match tokens[i + 2].kind {
+      KwAfter =>
+        Some({ expr: YearShift(v), tok_start: i, tok_end: i + 3 })
+      KwBefore =>
+        Some({ expr: YearShift(-v), tok_start: i, tok_end: i + 3 })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "下周三" / "周三" / "下下周一" — (下|上|这|本)个? * 周X
+fn match_weekday(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  let (sum, j, count) = scan_mods(tokens, i)
+  if j < n {
+    match tokens[j].kind {
+      KwWeekday(w) =>
+        Some({
+          expr: Weekday(sum, w, count == 0),
+          tok_start: i,
+          tok_end: j + 1,
+        })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "月底" / "下月底" / "上个月初" / "年底" — (下|上|这|本)个? 边界
+fn match_boundary_rel(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  let (sum, j, _count) = scan_mods(tokens, i)
+  if j < n {
+    match tokens[j].kind {
+      KwBoundary(b) =>
+        Some({
+          expr: BoundaryRel(sum, b),
+          tok_start: i,
+          tok_end: j + 1,
+        })
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// "下个月17日" / "上月15号" — (下|上)个? 月 NUM 日?
+fn match_month_shift(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  let (sum, j, count) = scan_mods(tokens, i)
+  if count == 0 {
+    return None
+  }
+  if j + 1 < n && tokens[j].kind == Month && is_num(tokens[j + 1]) {
+    guard read_num(tokens[j + 1], ValueNumber) is Some(d) else { return None }
+    let mut end = j + 2
+    if end < n && tokens[end].kind == Day {
+      end = end + 1
+    }
+    return Some({
+      expr: MonthShift(sum, Some(d)),
+      tok_start: i,
+      tok_end: end,
+    })
+  }
+  None
+}
+
+///|
+/// "11月底" / "三月初" / "2026年底" — NUM 边界
+fn match_boundary_abs(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 2 <= n && is_num(tokens[i]) {
+    match tokens[i + 1].kind {
+      KwBoundary(b) => {
+        let mode = match b {
+          MonthStart | MonthEnd => ValueNumber
+          YearStart | YearEnd => YearDigits
+        }
+        guard read_num(tokens[i], mode) is Some(v) else { return None }
+        Some({
+          expr: BoundaryAbs(v, b),
+          tok_start: i,
+          tok_end: i + 2,
+        })
+      }
+      _ => None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// Match the relative date patterns at token `i` (longest first).
+fn match_rel(tokens : Array[Token], i : Int32) -> Raw? {
+  if match_month_shift(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_day_offset(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_week_offset(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_month_offset(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_year_offset(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_weekday(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_boundary_rel(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_boundary_abs(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  match_rel_day(tokens, i)
+}
+
+///|
+/// Try to match one date expression starting at token `i`.
+/// Absolute patterns are tried before relative ones; within each group
+/// longer patterns win. Returns the candidate with its token span.
+fn match_at(tokens : Array[Token], i : Int32) -> Raw? {
+  if match_abs(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  match_rel(tokens, i)
+}
+
+///|
 /// Scan the whole token stream for date candidates, longest match first
 /// at each position and without overlapping.
-fn scan_raw(tokens : Array[Token]) -> Array[RawDate] {
-  let out : Array[RawDate] = []
+fn scan_raw(tokens : Array[Token]) -> Array[Raw] {
+  let out : Array[Raw] = []
   let n = tokens.length()
   let mut i = 0
   while i < n {
