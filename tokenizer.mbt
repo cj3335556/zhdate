@@ -72,6 +72,8 @@ pub enum TokenKind {
   KwHalf
   /// The time separator ":" or "：".
   KwColon
+  /// A range connector: 至, 到, ~ or ～.
+  KwRangeTo
   /// Anything else; consecutive others merge into one token.
   Other
 } derive(Eq)
@@ -197,6 +199,7 @@ fn keyword_at(
     '秒' => Some((KwSec, 1))
     '半' => Some((KwHalf, 1))
     ':' | '：' => Some((KwColon, 1))
+    '至' | '到' | '~' | '～' => Some((KwRangeTo, 1))
     _ => None
   }
 }

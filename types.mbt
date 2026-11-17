@@ -16,6 +16,22 @@ pub(all) struct TimeOfDay {
 }
 
 ///|
+/// A date or time range recognized in the input text,
+/// e.g. "下周一至周三", "11月17日至19日".
+pub(all) struct Range {
+  /// The matched substring covering both endpoints and the connector.
+  text : String
+  /// Character offset of the range start in the input.
+  start : Int32
+  /// Character offset of the range end (exclusive) in the input.
+  end : Int32
+  /// The start endpoint ("下周一", "11月17日").
+  from : Match
+  /// The end endpoint ("周三", "19日").
+  to : Match
+}
+
+///|
 /// A date expression recognized in the input text.
 pub(all) struct Match {
   /// The matched substring.

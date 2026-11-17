@@ -24,8 +24,11 @@ priv enum NumMode {
 ///   ("月底", "下月底", "下年底");
   /// - `BoundaryAbs(num, b)`: boundary of a named month/year ("11月底",
   ///   "2026年底");
-  /// - `Time(h, m, s)`: a time of day with the hour already adjusted
-  ///   for its day-part ("下午三点" -> 15).
+  /// - `Time(h, m, s, bare)`: a time of day with the hour already
+  ///   adjusted for its day-part ("下午三点" -> 15); `bare` marks a
+  ///   time written without a day-part ("5点" in "下午三点至五点");
+  /// - `DayOnly(day)`: a shorthand day of month ("17日至19日"的"19日"),
+  ///   taking month and year from the context.
 priv enum RawExpr {
   Day(Int32?, Int32, Int32, MatchKind)
   DayOffset(Int32)
@@ -34,7 +37,8 @@ priv enum RawExpr {
   YearShift(Int32)
   BoundaryRel(Int32, BoundaryKind)
   BoundaryAbs(Int32, BoundaryKind)
-  Time(Int32, Int32, Int32)
+  Time(Int32, Int32, Int32, Bool)
+  DayOnly(Int32)
 }
 
 ///|
@@ -474,7 +478,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[j + 4], ValueNumber) is Some(s) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), m, s),
+      expr: Time(apply_period(p, h), m, s, p is None),
       tok_start: i,
       tok_end: j + 6,
     })
@@ -490,7 +494,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     guard read_num(tokens[j + 4], ValueNumber) is Some(s) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), m, s),
+      expr: Time(apply_period(p, h), m, s, p is None),
       tok_start: i,
       tok_end: j + 5,
     })
@@ -504,7 +508,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), m, 0),
+      expr: Time(apply_period(p, h), m, 0, p is None),
       tok_start: i,
       tok_end: j + 4,
     })
@@ -516,7 +520,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), m, 0),
+      expr: Time(apply_period(p, h), m, 0, p is None),
       tok_start: i,
       tok_end: j + 3,
     })
@@ -529,7 +533,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     guard read_num(tokens[j + 2], ValueNumber) is Some(m) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), m, 0),
+      expr: Time(apply_period(p, h), m, 0, p is None),
       tok_start: i,
       tok_end: j + 3,
     })
@@ -541,7 +545,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
     tokens[j + 2].kind == KwHalf {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), 30, 0),
+      expr: Time(apply_period(p, h), 30, 0, p is None),
       tok_start: i,
       tok_end: j + 3,
     })
@@ -550,7 +554,7 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
   if j + 2 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHour {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), 0, 0),
+      expr: Time(apply_period(p, h), 0, 0, p is None),
       tok_start: i,
       tok_end: j + 2,
     })
@@ -559,16 +563,28 @@ fn match_time(tokens : Array[Token], i : Int32) -> Raw? {
   if j + 2 <= n && is_num(tokens[j]) && tokens[j + 1].kind == KwHalf {
     guard read_num(tokens[j], ValueNumber) is Some(h) else { return None }
     return Some({
-      expr: Time(apply_period(p, h), 30, 0),
+      expr: Time(apply_period(p, h), 30, 0, p is None),
       tok_start: i,
       tok_end: j + 2,
     })
   }
   // Bare "中午" — noon
   if p is Some(Noon) {
-    return Some({ expr: Time(12, 0, 0), tok_start: i, tok_end: i + 1 })
+    return Some({ expr: Time(12, 0, 0, false), tok_start: i, tok_end: i + 1 })
   }
   None
+}
+
+///|
+/// "19日" / "十九号" — a shorthand day of month for ranges.
+fn match_day_only(tokens : Array[Token], i : Int32) -> Raw? {
+  let n = tokens.length()
+  if i + 2 <= n && is_num(tokens[i]) && tokens[i + 1].kind == Day {
+    guard read_num(tokens[i], ValueNumber) is Some(d) else { return None }
+    Some({ expr: DayOnly(d), tok_start: i, tok_end: i + 2 })
+  } else {
+    None
+  }
 }
 
 ///|
@@ -596,6 +612,9 @@ fn match_rel(tokens : Array[Token], i : Int32) -> Raw? {
     return Some(r)
   }
   if match_boundary_abs(tokens, i) is Some(r) {
+    return Some(r)
+  }
+  if match_day_only(tokens, i) is Some(r) {
     return Some(r)
   }
   match_rel_day(tokens, i)
