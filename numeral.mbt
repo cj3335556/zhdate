@@ -4,7 +4,7 @@ fn cn_digit_value(c : Char) -> Int32? {
   match c {
     '〇' | '零' => Some(0)
     '一' => Some(1)
-    '二' => Some(2)
+    '二' | '两' => Some(2)
     '三' => Some(3)
     '四' => Some(4)
     '五' => Some(5)

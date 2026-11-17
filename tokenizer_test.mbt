@@ -53,3 +53,76 @@ test "tokenize offsets are char offsets" {
 test "tokenize empty string" {
   assert_eq(@zhdate.tokenize("").length(), 0)
 }
+
+///|
+test "tokenize relative keywords" {
+  let ts = @zhdate.tokenize("明天")
+  assert_eq(ts.length(), 1)
+  assert_true(ts[0].kind is @zhdate.TokenKind::KwRelDay(1))
+  let ts2 = @zhdate.tokenize("大后天")
+  assert_true(ts2[0].kind is @zhdate.TokenKind::KwRelDay(3))
+  let ts3 = @zhdate.tokenize("昨天")
+  assert_true(ts3[0].kind is @zhdate.TokenKind::KwRelDay(-1))
+}
+
+///|
+test "tokenize weekday keywords" {
+  let ts = @zhdate.tokenize("下周三")
+  assert_eq(ts.length(), 2)
+  assert_true(ts[0].kind is @zhdate.TokenKind::KwMod(1))
+  assert_true(ts[1].kind is @zhdate.TokenKind::KwWeekday(3))
+  let ts2 = @zhdate.tokenize("星期日")
+  assert_true(ts2[0].kind is @zhdate.TokenKind::KwWeekday(7))
+  let ts3 = @zhdate.tokenize("礼拜天")
+  assert_true(ts3[0].kind is @zhdate.TokenKind::KwWeekday(7))
+  let ts4 = @zhdate.tokenize("周日")
+  assert_true(ts4[0].kind is @zhdate.TokenKind::KwWeekday(7))
+}
+
+///|
+test "tokenize counter keywords" {
+  let ts = @zhdate.tokenize("三天后")
+  assert_eq(ts.length(), 3)
+  assert_true(ts[0].kind is @zhdate.TokenKind::NumCn)
+  assert_true(ts[1].kind is @zhdate.TokenKind::KwTian)
+  assert_true(ts[2].kind is @zhdate.TokenKind::KwAfter)
+  let ts2 = @zhdate.tokenize("两周前")
+  assert_true(ts2[0].kind is @zhdate.TokenKind::NumCn)
+  assert_true(ts2[1].kind is @zhdate.TokenKind::KwWeekWord)
+  assert_true(ts2[2].kind is @zhdate.TokenKind::KwBefore)
+  let ts3 = @zhdate.tokenize("三个月后")
+  assert_true(ts3[1].kind is @zhdate.TokenKind::KwGe)
+}
+
+///|
+test "tokenize boundary keywords" {
+  let ts = @zhdate.tokenize("下月底")
+  assert_eq(ts.length(), 2)
+  assert_true(ts[0].kind is @zhdate.TokenKind::KwMod(1))
+  assert_true(ts[1].kind is @zhdate.TokenKind::KwBoundary(
+    @zhdate.BoundaryKind::MonthEnd,
+  ))
+  let ts2 = @zhdate.tokenize("年底")
+  assert_true(ts2[0].kind is @zhdate.TokenKind::KwBoundary(
+    @zhdate.BoundaryKind::YearEnd,
+  ))
+  let ts3 = @zhdate.tokenize("下个月底")
+  assert_eq(ts3.length(), 3)
+  assert_true(ts3[2].kind is @zhdate.TokenKind::KwBoundary(
+    @zhdate.BoundaryKind::MonthEnd,
+  ))
+}
+
+///|
+test "keywords win over single chars" {
+  // "今天" is one keyword, not Other + KwTian.
+  let ts = @zhdate.tokenize("今天")
+  assert_eq(ts.length(), 1)
+  // "2026年底": number + boundary keyword.
+  let ts2 = @zhdate.tokenize("2026年底")
+  assert_eq(ts2.length(), 2)
+  assert_true(ts2[0].kind is @zhdate.TokenKind::NumAscii)
+  assert_true(ts2[1].kind is @zhdate.TokenKind::KwBoundary(
+    @zhdate.BoundaryKind::YearEnd,
+  ))
+}
