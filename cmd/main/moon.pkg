@@ -1,5 +1,5 @@
-// import {
-//   "cj3335556/zhdate" @lib,
-// }
+import {
+  "cj3335556/zhdate" @zhdate
+}
 
 pkgtype(kind: "executable")
